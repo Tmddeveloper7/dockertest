@@ -1,0 +1,140 @@
+
+# Your workload seems to support the new runtime which is more compatible with various GKE services, faster on start time and enables workload deployment to GKE Autopilot and Cloud Run. To use the new runtime, please change v2kServiceManager value to true.
+v2kServiceManager: true
+global:
+  # Files and directories to exclude from the migration, in rsync format.
+  filters:
+  - '- *.swp'
+  - '- /etc/fstab'
+  - '- /boot/'
+  - '- /proc/kcore'
+  - '- /tmp/*'
+  - '- /var/log/*.log*'
+  - '- /var/log/*/*.log*'
+  - '- /var/log/faillog'
+  - '- /var/log/lastlog'
+  - '- /var/log/[wb]tmp*'
+  - + /var/cache/*/
+  - '- /var/cache/*'
+  - '- /var/log/journal/'
+  - '- /var/m4a/*'
+  ## The data folders below are too big to be included in the docker image.
+  ## Consider uncommenting and including these either under the "global" filters or the data folder section.
+  # - '- /usr/lib' # (1.5 GB, last access 2023-11-28 07:55:41, last modified 2023-11-28 07:22:25)
+  # - '- /usr' # (2.3 GB, last access 2023-11-28 07:55:41, last modified 2023-11-28 07:25:25)
+  # - '- /var/lib/snapd' # (1.5 GB, last access 2023-11-28 01:15:43, last modified 2023-11-28 01:15:43)
+  # - '- /var/lib' # (1.7 GB, last access 2023-11-28 09:00:56, last modified 2023-11-28 09:00:58)
+  # - '- /var' # (1.7 GB, last access 2023-11-28 09:00:56, last modified 2023-11-28 09:00:58)
+image:
+  
+  # Review and set the name for extracted non-runnable base image, if an image tag is not specified, a random tag will be auto-generated when the image is built.
+  base: instance-2-non-runnable-base
+  
+  # Review and set the name for runnable container image, if an image tag is not specified, a random tag will be auto-generated when the image is built.
+  name: instance-2
+  
+  # Disable system services that do not need to be executed at the migrated workload containers.
+  # Enable the 'probed' property to include system services in the container health checks.
+  systemServices:
+  - enabled: true
+    name: apt-news
+    probed: false
+  - enabled: true
+    name: cloud-init-hotplugd
+    probed: false
+  - enabled: true
+    name: cron
+    probed: false
+  - enabled: true
+    name: dpkg-db-backup
+    probed: false
+  - enabled: true
+    name: esm-cache
+    probed: false
+  - enabled: true
+    name: gce-workload-cert-refresh
+    probed: false
+  - enabled: true
+    name: google-cloud-ops-agent
+    probed: false
+  - enabled: true
+    name: google-cloud-ops-agent-fluent-bit
+    probed: false
+  - enabled: true
+    name: google-cloud-ops-agent-opentelemetry-collector
+    probed: false
+  - enabled: true
+    name: nvmefc-boot-connections
+    probed: false
+  - enabled: true
+    name: nvmf-autoconnect
+    probed: false
+  - enabled: true
+    name: nvmf-connect@
+    probed: false
+  - enabled: true
+    name: plymouth-switch-root-initramfs
+    probed: false
+  - enabled: true
+    name: rsync
+    probed: false
+  - enabled: true
+    name: snap.lxd.user-daemon
+    probed: false
+  - enabled: true
+    name: snapd.aa-prompt-listener
+    probed: false
+  - enabled: true
+    name: ssh
+    probed: false
+  - enabled: true
+    name: ssh@
+    probed: false
+  - enabled: true
+    name: ua-reboot-cmds
+    probed: false
+  - enabled: true
+    name: ua-timer
+    probed: false
+  - enabled: true
+    name: ubuntu-advantage
+    probed: false
+  - enabled: true
+    name: update-notifier-download
+    probed: false
+  - enabled: true
+    name: update-notifier-motd
+    probed: false
+deployment:
+  
+  # Review and set the app-name for your StatefulSet or Deployment YAML spec.
+  appName: instance-2
+  
+  # Deploy network objects to allow easy access to open ports.
+  # For example:
+  # endpoints:
+  # - name: instance-2-httpd
+  #   port: 80
+  #   protocol: TCP
+  # - name: instance-2-redis
+  #   port: 6379
+  #   protocol: TCP
+
+  # No workload port details were detected, preventing network objects auto generation.
+  # Please consider running the containerization fit assessment tool.
+  # If you did, check if the discovery phase failed.
+
+  
+  # By default, this health probe configuration will be used. Review, change or remove it.
+  # see: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  probes:
+    livenessProbe:
+      exec:
+        command:
+        - /gamma
+        - probe
+    readinessProbe:
+      exec:
+        command:
+        - /gamma
+        - probe

@@ -1,0 +1,6 @@
+images:
+    - name: gcr.io/tvs-mob-test/instance-2
+      context: ./
+      dockerfile: Dockerfile
+deploy:
+    - ./deployment_spec.yaml

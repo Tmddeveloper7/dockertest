@@ -1,0 +1,300 @@
+version: v1beta1
+env: []
+applications:
+    - name: apt-news
+      type: oneshot
+      start:
+        - cmd: /usr/bin/python3 /usr/lib/ubuntu-advantage/apt_news.py
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: cloud-init-hotplugd
+      type: simple
+      start:
+        - cmd: /bin/bash -c 'read args <&3; echo "args=$args"; exec /usr/bin/cloud-init devel hotplug-hook $args; exit 0'
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: cron
+      type: simple
+      start:
+        - cmd: /usr/sbin/cron -f -P $EXTRA_OPTS
+      umask: 18
+      envfile:
+        path: /etc/default/cron
+        ignore_non_exist: true
+      probed: false
+    - name: dpkg-db-backup
+      type: oneshot
+      start:
+        - cmd: /usr/libexec/dpkg/dpkg-db-backup
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      timers:
+        - name: dpkg-db-backup.timer
+          on_calendar:
+            - cron: '@daily'
+      probed: false
+    - name: esm-cache
+      type: oneshot
+      start:
+        - cmd: /usr/bin/python3 /usr/lib/ubuntu-advantage/esm_cache.py
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: gce-workload-cert-refresh
+      type: oneshot
+      start:
+        - cmd: /usr/bin/gce_workload_cert_refresh
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      timers:
+        - name: gce-workload-cert-refresh.timer
+          on_startup:
+            - duration: 5s
+          on_service_start:
+            - duration: 10m0s
+      probed: false
+    - name: google-cloud-ops-agent
+      type: oneshot
+      prestart:
+        - cmd: /opt/google-cloud-ops-agent/libexec/google_cloud_ops_agent_engine -in /etc/google-cloud-ops-agent/config.yaml
+      start:
+        - cmd: /bin/true
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: google-cloud-ops-agent-fluent-bit
+      type: simple
+      prestart:
+        - cmd: /opt/google-cloud-ops-agent/libexec/google_cloud_ops_agent_engine -service=fluentbit -in /etc/google-cloud-ops-agent/config.yaml -logs ${LOGS_DIRECTORY} -state ${STATE_DIRECTORY}
+      start:
+        - cmd: /opt/google-cloud-ops-agent/libexec/google_cloud_ops_agent_wrapper -config_path /etc/google-cloud-ops-agent/config.yaml -log_path ${LOGS_DIRECTORY}/subagents/logging-module.log /opt/google-cloud-ops-agent/subagents/fluent-bit/bin/fluent-bit --config ${RUNTIME_DIRECTORY}/fluent_bit_main.conf --parser ${RUNTIME_DIRECTORY}/fluent_bit_parser.conf --storage_path ${STATE_DIRECTORY}/buffers
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      runtime_directories:
+        mode: "0755"
+        preserve: true
+        paths:
+            - /run/google-cloud-ops-agent-fluent-bit
+      state_directories:
+        mode: "0755"
+        preserve: true
+        paths:
+            - /var/lib/google-cloud-ops-agent/fluent-bit
+      logs_directories:
+        mode: "0755"
+        preserve: true
+        paths:
+            - /var/log/google-cloud-ops-agent
+      probed: false
+    - name: google-cloud-ops-agent-opentelemetry-collector
+      type: simple
+      prestart:
+        - cmd: /opt/google-cloud-ops-agent/libexec/google_cloud_ops_agent_engine -service=otel -in /etc/google-cloud-ops-agent/config.yaml -logs ${LOGS_DIRECTORY}
+      start:
+        - cmd: /opt/google-cloud-ops-agent/subagents/opentelemetry-collector/otelopscol --config=${RUNTIME_DIRECTORY}/otel.yaml
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      runtime_directories:
+        mode: "0755"
+        preserve: true
+        paths:
+            - /run/google-cloud-ops-agent-opentelemetry-collector
+      state_directories:
+        mode: "0755"
+        preserve: true
+        paths:
+            - /var/lib/google-cloud-ops-agent/opentelemetry-collector
+      logs_directories:
+        mode: "0755"
+        preserve: true
+        paths:
+            - /var/log/google-cloud-ops-agent
+      probed: false
+    - name: nvmefc-boot-connections
+      type: oneshot
+      start:
+        - cmd: /bin/sh -c "echo add > /sys/class/fc/fc_udev_device/nvme_discovery"
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: nvmf-autoconnect
+      type: oneshot
+      prestart:
+        - cmd: /sbin/modprobe nvme-fabrics
+      start:
+        - cmd: /usr/sbin/nvme connect-all
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: nvmf-connect@
+      type: simple
+      start:
+        - cmd: /bin/sh -c "nvme connect-all --matching --quiet `/bin/echo -e '${CONNECT_ARGS}'`"
+      umask: 18
+      env:
+        - name: CONNECT_ARGS
+          value: ""
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: plymouth-switch-root-initramfs
+      type: oneshot
+      start:
+        - cmd: /usr/bin/plymouth message --text=""
+          ignore_errors: true
+        - cmd: /usr/bin/plymouth update-root-fs --new-root-dir=/run/initramfs
+          ignore_errors: true
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: rsync
+      type: forking
+      start:
+        - cmd: /etc/init.d/rsync start
+      status:
+        cmd: /etc/init.d/rsync status
+      umask: null
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: snap.lxd.user-daemon
+      type: simple
+      start:
+        - cmd: /usr/bin/snap run lxd.user-daemon
+      chdir: /var/snap/lxd/24322
+      umask: 18
+      envfile:
+        path: /etc/environment
+        ignore_non_exist: true
+      probed: false
+    - name: snapd.aa-prompt-listener
+      type: simple
+      start:
+        - cmd: /usr/lib/snapd/snapd-aa-prompt-listener
+      umask: 18
+      envfile:
+        path: /etc/environment
+        ignore_non_exist: true
+      probed: false
+    - name: ssh
+      type: notify
+      prestart:
+        - cmd: /usr/sbin/sshd -t
+      start:
+        - cmd: /usr/sbin/sshd -D $SSHD_OPTS
+      umask: 18
+      envfile:
+        path: /etc/default/ssh
+        ignore_non_exist: true
+      runtime_directories:
+        mode: "0755"
+        paths:
+            - /run/sshd
+      probed: false
+    - name: ssh@
+      type: simple
+      start:
+        - cmd: /usr/sbin/sshd -i $SSHD_OPTS
+          ignore_errors: true
+      umask: 18
+      envfile:
+        path: /etc/default/ssh
+        ignore_non_exist: true
+      runtime_directories:
+        mode: "0755"
+        preserve: true
+        paths:
+            - /run/sshd
+      probed: false
+    - name: ua-reboot-cmds
+      type: oneshot
+      start:
+        - cmd: /usr/bin/python3 /usr/lib/ubuntu-advantage/reboot_cmds.py
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: ua-timer
+      type: oneshot
+      start:
+        - cmd: /usr/bin/python3 /usr/lib/ubuntu-advantage/timer.py
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      timers:
+        - name: ua-timer.timer
+          on_startup:
+            - duration: 1m0s
+          on_service_start:
+            - duration: 6h0m0s
+          randomized_delay_duration:
+            duration: 1h0m0s
+      probed: false
+    - name: ubuntu-advantage
+      type: notify
+      start:
+        - cmd: /usr/bin/python3 /usr/lib/ubuntu-advantage/daemon.py
+      chdir: /var/lib/ubuntu-advantage/
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      probed: false
+    - name: update-notifier-download
+      type: oneshot
+      start:
+        - cmd: /usr/lib/update-notifier/package-data-downloader
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      timers:
+        - name: update-notifier-download.timer
+          on_startup:
+            - duration: 5m0s
+          on_service_start:
+            - duration: 24h0m0s
+      probed: false
+    - name: update-notifier-motd
+      type: oneshot
+      start:
+        - cmd: /usr/lib/ubuntu-release-upgrader/release-upgrade-motd
+      umask: 18
+      envfile:
+        path: ""
+        ignore_non_exist: false
+      timers:
+        - name: update-notifier-motd.timer
+          on_calendar:
+            - cron: 0 0 6 * * 0
+          randomized_delay_duration:
+            duration: 168h0m0s
+      probed: false

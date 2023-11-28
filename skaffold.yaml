@@ -1,0 +1,18 @@
+apiVersion: skaffold/v2beta25
+kind: Config
+build:
+    artifacts:
+        - image: gcr.io/tvs-mob-test/instance-2
+          context: ./
+          docker:
+            dockerfile: Dockerfile
+deploy:
+    kubectl:
+        manifests:
+            - ./deployment_spec.yaml
+profiles:
+    - name: cloudbuild
+      build:
+        googleCloudBuild:
+            timeout: 3600s
+            logStreamingOption: STREAM_OFF
